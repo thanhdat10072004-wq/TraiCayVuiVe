@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chủ Sàn - Quản Trị 16 Loại Nông Sản</title>
+<style>
+  :root {
+    --bg: #090e1a; --card: #121a2f; --border: #233358;
+    --green: #22c55e; --red: #ef4444; --blue: #3b82f6; --text: #f8fafc; --sub: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg); color: var(--text); padding: 12px; display: flex; justify-content: center; }
+  .box { width: 100%; max-width: 650px; }
+
+  h2 { color: #f87171; text-align: center; margin-bottom: 12px; }
+
+  .control-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 14px; }
+  .control-card h4 { font-size: 0.85rem; color: #fbbf24; margin-bottom: 8px; }
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .action-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+
+  .select-box, .inp-pct { padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: #070c18; color: #fff; font-weight: bold; font-size: 0.9rem; outline: none; }
+  .inp-pct { text-align: center; }
+
+  .btn { border: none; padding: 8px 6px; border-radius: 6px; font-weight: bold; cursor: pointer; color: #fff; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .btn-red { background: var(--red); }
+  .btn-green { background: var(--green); }
+  .btn-blue { background: var(--blue); }
+
+  .title-sec { font-size: 0.95rem; color: var(--sub); margin: 14px 0 8px 0; border-left: 3px solid var(--blue); padding-left: 8px; }
+  
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 15px; }
+  th, td { padding: 8px 6px; text-align: left; font-size: 0.85rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  th { background: #070c18; color: var(--sub); }
+  .inp-num { width: 55px; padding: 5px; background: #070c18; border: 1px solid var(--border); border-radius: 6px; color: #38bdf8; font-weight: bold; text-align: center; }
+  .badge { background: rgba(34,197,94,0.15); color: var(--green); padding: 3px 6px; border-radius: 4px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h2>👑 Quản Trị Thị Trường & Nạp Xu</h2>
+
+  <!-- KHU VỰC CAN THIỆP % TỪNG LOẠI -->
+  <div class="control-card">
+    <h4>⚡ CAN THIỆP RIÊNG TỪNG LOẠI QUẢ / RAU THEO %:</h4>
+    <div class="action-grid">
+      <select class="select-box" id="target-fruit"></select>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <input type="number" class="inp-pct" id="target-pct" value="20" style="width:100%;">
+        <span style="font-weight:bold; color:var(--sub);">%</span>
+      </div>
+    </div>
+    <div class="action-buttons">
+      <button class="btn btn-red" onclick="applyTargetCrash()">
+        <span>📉 Đánh Sập</span>
+        <span style="font-size:0.7rem; opacity:0.8;">(-%)</span>
+      </button>
+      <button class="btn btn-green" onclick="applyTargetPump()">
+        <span>🚀 Bơm Giá</span>
+        <span style="font-size:0.7rem; opacity:0.8;">(+%)</span>
+      </button>
+      <button class="btn btn-blue" onclick="applyTargetStorm()">
+        <span>🎲 Bão Giá</span>
+        <span style="font-size:0.7rem; opacity:0.8;">(Rung lắc)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- BẢNG CHỈNH GIÁ 16 MÃ -->
+  <div class="title-sec">📊 Danh Sách 16 Loại Nông Sản & Rau Củ</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Nông Sản</th>
+        <th>Giá Bán</th>
+        <th>Hạt Giống</th>
+        <th>Lưu</th>
+      </tr>
+    </thead>
+    <tbody id="market-body"></tbody>
+  </table>
+
+  <!-- BẢNG QUẢN LÝ NGƯỜI CHƠI -->
+  <div class="title-sec">👥 Quản Lý Người Chơi & Bơm Xu Trực Tiếp</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Nông Dân</th>
+        <th>Số Dư Ví</th>
+        <th>Kho Nông Sản</th>
+        <th>Cộng Xu</th>
+      </tr>
+    </thead>
+    <tbody id="player-body">
+      <tr><td colspan="4" style="text-align:center; color:var(--sub);">Đang quét danh sách...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const channel = new BroadcastChannel('farm_stock_exchange');
+  let players = {};
+
+  let market = {
+    strawberry: { name: 'Dâu Tây',       icon: '🍓', price: 20, seedPrice: 6  },
+    apple:      { name: 'Táo Xanh',      icon: '🍏', price: 25, seedPrice: 8  },
+    banana:     { name: 'Chuối Vàng',    icon: '🍌', price: 12, seedPrice: 4  },
+    grapes:     { name: 'Nho Tím',       icon: '🍇', price: 38, seedPrice: 15 },
+    watermelon: { name: 'Dưa Hấu',      icon: '🍉', price: 50, seedPrice: 20 },
+    avocado:    { name: 'Bơ Sáp',        icon: '🥑', price: 32, seedPrice: 12 },
+    lemon:      { name: 'Chanh Vàng',    icon: '🍋', price: 15, seedPrice: 5  },
+    orange:     { name: 'Cam Sành',      icon: '🍊', price: 22, seedPrice: 7  },
+    pear:       { name: 'Lê Tuyết',      icon: '🍐', price: 28, seedPrice: 10 },
+    kiwi:       { name: 'Kiwi Vàng',     icon: '🥝', price: 35, seedPrice: 14 },
+    cherry:     { name: 'Cherry Đỏ',     icon: '🍒', price: 60, seedPrice: 25 },
+    pineapple:  { name: 'Dứa Mật',       icon: '🍍', price: 42, seedPrice: 16 },
+    mango:      { name: 'Xoài Cát',      icon: '🥭', price: 30, seedPrice: 11 },
+    carrot:     { name: 'Cà Rốt',        icon: '🥕', price: 14, seedPrice: 4  },
+    corn:       { name: 'Bắp Ngô',       icon: '🌽', price: 18, seedPrice: 6  },
+    broccoli:   { name: 'Bông Cải',      icon: '🥦', price: 26, seedPrice: 9  }
+  };
+
+  window.onload = function() {
+    initSelect();
+    renderMarketTable();
+    loadFarmers();
+  };
+
+  function initSelect() {
+    const sel = document.getElementById('target-fruit');
+    sel.innerHTML = '';
+    for (let id in market) {
+      sel.innerHTML += `<option value="${id}">${market[id].icon} ${market[id].name}</option>`;
+    }
+  }
+
+  function loadFarmers() {
+    let db = JSON.parse(localStorage.getItem('farmer_accounts') || '{}');
+    for (let u in db) {
+      players[u] = { money: db[u].money, inv: db[u].inventory };
+    }
+    renderPlayerList();
+  }
+
+  channel.onmessage = function(e) {
+    if (e.data.type === 'PLAYER_SYNC') {
+      players[e.data.user] = { money: e.data.money, inv: e.data.inv };
+      renderPlayerList();
+    } else if (e.data.type === 'TOPUP_REQUEST') {
+      alert(`🔔 Nông dân @${e.data.user} vừa gửi yêu cầu nạp thêm xu!`);
+    }
+  };
+
+  function renderMarketTable() {
+    const tbody = document.getElementById('market-body');
+    tbody.innerHTML = '';
+    for (let id in market) {
+      const f = market[id];
+      tbody.innerHTML += `
+        <tr>
+          <td><span style="font-size:1.2rem;">${f.icon}</span> <b>${f.name}</b></td>
+          <td><input type="number" class="inp-num" id="p-${id}" value="${f.price}"></td>
+          <td><input type="number" class="inp-num" id="s-${id}" value="${f.seedPrice}"></td>
+          <td><button class="btn btn-blue" style="padding:4px 8px;" onclick="applySingle('${id}')">Lưu</button></td>
+        </tr>
+      `;
+    }
+  }
+
+  function renderPlayerList() {
+    const tbody = document.getElementById('player-body');
+    tbody.innerHTML = '';
+    const keys = Object.keys(players);
+    if (keys.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--sub);">Chưa có nông dân nào truy cập...</td></tr>`;
+      return;
+    }
+
+    keys.forEach(name => {
+      const p = players[name];
+      let invStr = [];
+      for (let k in p.inv) {
+        if (p.inv[k] > 0) invStr.push(`${p.inv[k]} ${k}`);
+      }
+      tbody.innerHTML += `
+        <tr>
+          <td><b>@${name}</b></td>
+          <td><span class="badge">${p.money} xu</span></td>
+          <td style="color:var(--sub); font-size:0.75rem;">${invStr.join(', ') || 'Trống'}</td>
+          <td>
+            <button class="btn btn-green" style="padding:4px 8px;" onclick="topupPlayer('${name}')">+ Nạp</button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function broadcastChange() {
+    channel.postMessage({ type: 'HOST_OVERRIDE', market: market });
+  }
+
+  function applySingle(id) {
+    const p = parseInt(document.getElementById(`p-${id}`).value);
+    const s = parseInt(document.getElementById(`s-${id}`).value);
+    if (!isNaN(p) && !isNaN(s) && p > 0 && s > 0) {
+      market[id].price = p;
+      market[id].seedPrice = s;
+      broadcastChange();
+      renderMarketTable();
+      alert(`Đã lưu giá cho ${market[id].name}!`);
+    }
+  }
+
+  function applyTargetCrash() {
+    const id = document.getElementById('target-fruit').value;
+    const pct = parseInt(document.getElementById('target-pct').value) || 20;
+    const ratio = Math.max(0.05, (100 - pct) / 100);
+    market[id].price = Math.max(1, Math.round(market[id].price * ratio));
+    market[id].seedPrice = Math.max(1, Math.round(market[id].price * 0.35));
+    broadcastChange();
+    renderMarketTable();
+  }
+
+  function applyTargetPump() {
+    const id = document.getElementById('target-fruit').value;
+    const pct = parseInt(document.getElementById('target-pct').value) || 20;
+    const ratio = (100 + pct) / 100;
+    market[id].price = Math.round(market[id].price * ratio);
+    market[id].seedPrice = Math.max(1, Math.round(market[id].price * 0.35));
+    broadcastChange();
+    renderMarketTable();
+  }
+
+  function applyTargetStorm() {
+    const id = document.getElementById('target-fruit').value;
+    const pct = (parseInt(document.getElementById('target-pct').value) || 20) / 100;
+    const delta = (Math.random() * (pct * 2) - pct);
+    market[id].price = Math.max(2, Math.round(market[id].price * (1 + delta)));
+    market[id].seedPrice = Math.max(1, Math.round(market[id].price * 0.35));
+    broadcastChange();
+    renderMarketTable();
+  }
+
+  function topupPlayer(username) {
+    const amount = prompt(`Nhập số xu nạp cho @${username}:`, "50");
+    const val = parseInt(amount);
+    if (!isNaN(val) && val > 0) {
+      let db = JSON.parse(localStorage.getItem('farmer_accounts') || '{}');
+      if (db[username]) {
+        db[username].money = (db[username].money || 0) + val;
+        localStorage.setItem('farmer_accounts', JSON.stringify(db));
+      }
+      if (players[username]) players[username].money += val;
+      renderPlayerList();
+      channel.postMessage({ type: 'TOPUP_APPROVED', user: username, amount: val });
+      alert(`Đã nạp +${val} xu cho @${username}`);
+    }
+  }
+</script>
+</body>
+</html>

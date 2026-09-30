@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sàn Nông Sản Kỳ Hạn & Nông Trại</title>
+<style>
+  :root {
+    --bg: #0b1120; --card: #131d35; --border: #233358;
+    --green: #22c55e; --red: #ef4444; --text: #f8fafc; --sub: #94a3b8; --gold: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg); color: var(--text); padding: 10px; display: flex; justify-content: center; }
+  .container { width: 100%; max-width: 520px; padding-bottom: 40px; }
+
+  /* Đăng nhập */
+  .auth-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 25px; text-align: center; margin-top: 40px; }
+  .inp { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: #070c18; color: #fff; margin-bottom: 12px; font-size: 1rem; outline: none; }
+  .btn-login { width: 100%; padding: 12px; border-radius: 8px; background: var(--green); color: #fff; font-weight: bold; border: none; font-size: 1rem; cursor: pointer; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center; background: var(--card); border: 1px solid var(--border); padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; }
+  .wallet-area { display: flex; align-items: center; gap: 8px; }
+  .wallet-num { font-size: 1.3rem; font-weight: 800; color: var(--green); }
+  .btn-topup { background: #3b82f6; border: none; padding: 4px 8px; border-radius: 6px; color: #fff; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+
+  /* Biểu đồ nến */
+  .chart-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 12px; }
+  .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .fruit-select { background: #070c18; color: #fff; border: 1px solid var(--border); padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; }
+  canvas { display: block; width: 100%; height: 170px; background: #070c18; border-radius: 8px; }
+
+  /* Danh sách quả */
+  .title-sec { font-size: 0.95rem; color: var(--sub); margin: 16px 0 8px 0; border-left: 3px solid #3b82f6; padding-left: 8px; font-weight: bold; }
+  .fruit-list { display: flex; flex-direction: column; gap: 8px; }
+  .item-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
+  .item-icon { font-size: 1.8rem; margin-right: 10px; }
+  .item-meta { flex: 1; }
+  .item-meta h4 { font-size: 0.9rem; margin-bottom: 2px; }
+  .item-prices { font-size: 0.78rem; color: var(--sub); }
+  .inv-tag { font-size: 0.78rem; color: var(--gold); }
+
+  .btn-group { display: flex; gap: 6px; }
+  .btn { border: none; padding: 7px 10px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; cursor: pointer; color: #fff; }
+  .btn-buy { background: #2563eb; }
+  .btn-sell { background: var(--green); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Khu Vườn Trồng Tự Do */
+  .garden-sec { background: #111e38; border: 1.5px dashed #3b82f6; border-radius: 14px; padding: 14px; margin-top: 18px; }
+  .garden-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .plot-card { background: #0b1324; border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; min-height: 110px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .plot-empty { color: var(--sub); font-size: 0.8rem; }
+  .plot-plant-btn { background: #059669; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; border: none; color: #fff; font-weight: bold; cursor: pointer; margin-top: 6px; }
+  .plot-harvest-btn { background: #f59e0b; color: #000; animation: bounce 1s infinite alternate; }
+  @keyframes bounce { from { transform: scale(0.96); } to { transform: scale(1.04); } }
+  .prog-bar { width: 100%; height: 5px; background: #1e293b; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--green); width: 0%; transition: width 0.1s; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Đăng nhập -->
+  <div id="auth-panel" class="auth-box">
+    <h2 style="margin-bottom: 6px;">📈 Sàn Nông Sản & Nông Trại</h2>
+    <p style="color: var(--sub); font-size: 0.85rem; margin-bottom: 16px;">Tạo nick mới tặng ngay <b>50 xu</b> khởi nghiệp</p>
+    <input type="text" id="inp-user" class="inp" placeholder="Tên tài khoản...">
+    <input type="password" id="inp-pass" class="inp" placeholder="Mật khẩu...">
+    <button class="btn-login" onclick="login()">Vào Sàn Giao Dịch</button>
+  </div>
+
+  <!-- Sàn giao dịch chính -->
+  <div id="market-panel" style="display: none;">
+    <div class="header">
+      <div>
+        <div style="font-size: 0.75rem; color: var(--sub);" id="disp-username">Nông Dân: -</div>
+        <div class="wallet-area">
+          <span class="wallet-num">💰 <span id="disp-money">50</span> xu</span>
+          <button class="btn-topup" onclick="requestTopup()">Nạp thêm</button>
+        </div>
+      </div>
+      <button class="btn" style="background: #334155;" onclick="logout()">Đổi nick</button>
+    </div>
+
+    <!-- Biểu đồ nến TradingView thu nhỏ -->
+    <div class="chart-box">
+      <div class="chart-header">
+        <div>
+          <b id="chart-name">Dâu Tây</b> 
+          <span id="chart-now-price" style="font-weight:bold; color:var(--green); margin-left:6px;">20 xu</span>
+        </div>
+        <select class="fruit-select" id="fruit-switch" onchange="selectFruit(this.value)">
+          <!-- 16 loại nông sản tự sinh -->
+        </select>
+      </div>
+      <canvas id="candleCanvas" width="480" height="170"></canvas>
+    </div>
+
+    <!-- Danh sách giao dịch thị trường -->
+    <div class="title-sec">📈 SÀN GIAO DỊCH 16 LOẠI HOA QUẢ & RAU CỦ</div>
+    <div class="fruit-list" id="fruits-box"></div>
+
+    <!-- KHU VỰC VƯỜN TRỒNG TỰ DO THU HOẠCH RIÊNG (CUỐI BẢNG) -->
+    <div class="garden-sec">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h4 style="color:#60a5fa;">🌾 KHU VƯỜN NÔNG DÂN (TỰ TRỒNG & THU HOẠCH)</h4>
+        <span style="font-size:0.75rem; color:var(--sub);">4 Mảnh Đất</span>
+      </div>
+      <p style="font-size:0.78rem; color:var(--sub); margin-top:4px;">
+        Chọn đất gieo hạt giống bạn đang có. Đợi cây lớn thu hoạch để trữ kho hoặc canh giá đỉnh bán kiếm lời!
+      </p>
+
+      <div class="garden-grid" id="garden-plots"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const channel = new BroadcastChannel('farm_stock_exchange');
+  let currentUser = null;
+  let userData = { money: 50, inventory: {}, plots: [null, null, null, null] };
+  let currentFruit = 'strawberry';
+
+  // 16 Loại nông sản gồm hoa quả và rau củ
+  let market = {
+    strawberry: { name: 'Dâu Tây',       icon: '🍓', price: 20, seedPrice: 6,  time: 4  },
+    apple:      { name: 'Táo Xanh',      icon: '🍏', price: 25, seedPrice: 8,  time: 6  },
+    banana:     { name: 'Chuối Vàng',    icon: '🍌', price: 12, seedPrice: 4,  time: 3  },
+    grapes:     { name: 'Nho Tím',       icon: '🍇', price: 38, seedPrice: 15, time: 8  },
+    watermelon: { name: 'Dưa Hấu',      icon: '🍉', price: 50, seedPrice: 20, time: 10 },
+    avocado:    { name: 'Bơ Sáp',        icon: '🥑', price: 32, seedPrice: 12, time: 7  },
+    lemon:      { name: 'Chanh Vàng',    icon: '🍋', price: 15, seedPrice: 5,  time: 4  },
+    orange:     { name: 'Cam Sành',      icon: '🍊', price: 22, seedPrice: 7,  time: 5  },
+    pear:       { name: 'Lê Tuyết',      icon: '🍐', price: 28, seedPrice: 10, time: 6  },
+    kiwi:       { name: 'Kiwi Ruột Vàng',icon: '🥝', price: 35, seedPrice: 14, time: 7  },
+    cherry:     { name: 'Cherry Đỏ',     icon: '🍒', price: 60, seedPrice: 25, time: 12 },
+    pineapple:  { name: 'Dứa Mật',       icon: '🍍', price: 42, seedPrice: 16, time: 9  },
+    mango:      { name: 'Xoài Cát',      icon: '🥭', price: 30, seedPrice: 11, time: 6  },
+    carrot:     { name: 'Cà Rốt Đà Lạt', icon: '🥕', price: 14, seedPrice: 4,  time: 4  },
+    corn:       { name: 'Bắp Ngô Ngọt',  icon: '🌽', price: 18, seedPrice: 6,  time: 5  },
+    broccoli:   { name: 'Bông Cải Xanh', icon: '🥦', price: 26, seedPrice: 9,  time: 6  }
+  };
+
+  // Khởi tạo nến cho 16 loại quả
+  let candles = {};
+  for (let k in market) {
+    candles[k] = [];
+    let p = market[k].price;
+    for (let i = 0; i < 14; i++) {
+      let o = p + Math.floor(Math.random() * 4 - 2);
+      let c = o + Math.floor(Math.random() * 4 - 2);
+      candles[k].push({
+        open: o, close: c,
+        high: Math.max(o, c) + Math.floor(Math.random() * 2),
+        low: Math.max(1, Math.min(o, c) - Math.floor(Math.random() * 2))
+      });
+      p = c;
+    }
+  }
+
+  window.onload = function() {
+    initFruitSelector();
+    const saved = localStorage.getItem('active_farmer');
+    if (saved) loadProfile(saved);
+    startStockLoop();
+    startGardenPlotLoop();
+  };
+
+  function initFruitSelector() {
+    const sel = document.getElementById('fruit-switch');
+    sel.innerHTML = '';
+    for (let id in market) {
+      sel.innerHTML += `<option value="${id}">${market[id].icon} ${market[id].name}</option>`;
+    }
+  }
+
+  function login() {
+    const u = document.getElementById('inp-user').value.trim();
+    const p = document.getElementById('inp-pass').value.trim();
+    if (!u || !p) return alert("Vui lòng điền đủ thông tin!");
+
+    let db = JSON.parse(localStorage.getItem('farmer_accounts') || '{}');
+    if (db[u]) {
+      if (db[u].pass !== p) return alert("Sai mật khẩu!");
+    } else {
+      db[u] = { pass: p, money: 50, inventory: {}, plots: [null, null, null, null] };
+      localStorage.setItem('farmer_accounts', JSON.stringify(db));
+    }
+    localStorage.setItem('active_farmer', u);
+    loadProfile(u);
+  }
+
+  function loadProfile(u) {
+    currentUser = u;
+    let db = JSON.parse(localStorage.getItem('farmer_accounts') || '{}');
+    userData = db[u] || { money: 50, inventory: {}, plots: [null, null, null, null] };
+    if (!userData.plots) userData.plots = [null, null, null, null];
+    document.getElementById('auth-panel').style.display = 'none';
+    document.getElementById('market-panel').style.display = 'block';
+    document.getElementById('disp-username').innerText = 'Nông Dân: ' + u;
+    renderList();
+    renderGardenPlots();
+    drawCandles();
+    syncToHost();
+  }
+
+  function saveProfile() {
+    if (!currentUser) return;
+    let db = JSON.parse(localStorage.getItem('farmer_accounts') || '{}');
+    db[currentUser] = { ...db[currentUser], money: userData.money, inventory: userData.inventory, plots: userData.plots };
+    localStorage.setItem('farmer_accounts', JSON.stringify(db));
+    syncToHost();
+  }
+
+  function logout() {
+    localStorage.removeItem('active_farmer');
+    location.reload();
+  }
+
+  function syncToHost() {
+    channel.postMessage({
+      type: 'PLAYER_SYNC',
+      user: currentUser,
+      money: userData.money,
+      inv: userData.inventory
+    });
+  }
+
+  function requestTopup() {
+    alert("Đã gửi yêu cầu nạp thêm xu đến Chủ Sàn!");
+    channel.postMessage({ type: 'TOPUP_REQUEST', user: currentUser });
+  }
+
+  // Nhận tín hiệu điều chỉnh từ Chủ Sàn
+  channel.onmessage = function(e) {
+    if (e.data.type === 'HOST_OVERRIDE') {
+      market = e.data.market;
+      renderList();
+      drawCandles();
+    } else if (e.data.type === 'TOPUP_APPROVED' && e.data.user === currentUser) {
+      userData.money += e.data.amount;
+      saveProfile();
+      renderList();
+      alert(`Chủ Sàn vừa nạp thêm cho bạn +${e.data.amount} xu!`);
+    }
+  };
+
+  function renderList() {
+    document.getElementById('disp-money').innerText = userData.money;
+    const box = document.getElementById('fruits-box');
+    box.innerHTML = '';
+
+    for (let id in market) {
+      const f = market[id];
+      const invCount = userData.inventory[id] || 0;
+
+      box.innerHTML += `
+        <div class="item-card">
+          <div class="item-icon">${f.icon}</div>
+          <div class="item-meta">
+            <h4>${f.name}</h4>
+            <div class="item-prices">
+              Bán ra: <b style="color:#38bdf8;">${f.price} xu</b> | Mua giống: <b>${f.seedPrice} xu</b>
+            </div>
+            <div class="inv-tag">Kho trữ: <b>${invCount}</b> trái/củ</div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-buy" onclick="buySeedDirect('${id}')">Mua Giống</button>
+            <button class="btn btn-sell" ${invCount <= 0 ? 'disabled' : ''} onclick="sellFruit('${id}')">Bán Sàn</button>
+          </div>
+        </div>
+      `;
+    }
+    if (market[currentFruit]) {
+      document.getElementById('chart-now-price').innerText = market[currentFruit].price + ' xu';
+    }
+  }
+
+  function selectFruit(id) {
+    currentFruit = id;
+    document.getElementById('chart-name').innerText = market[id].name;
+    document.getElementById('chart-now-price').innerText = market[id].price + ' xu';
+    drawCandles();
+  }
+
+  // Mua hạt giống đưa vào gieo trồng hoặc trữ
+  function buySeedDirect(id) {
+    const f = market[id];
+    if (userData.money < f.seedPrice) return alert("Không đủ tiền mua hạt giống! Bấm 'Nạp thêm' để xin Chủ Sàn.");
+    userData.money -= f.seedPrice;
+    
+    // Tác động thị trường Cung Cầu nhẹ
+    f.seedPrice += 1;
+    f.price += 1;
+
+    // Tự động tìm mảnh đất trống để gieo
+    let emptyIdx = userData.plots.findIndex(p => p === null);
+    if (emptyIdx !== -1) {
+      userData.plots[emptyIdx] = {
+        id: id,
+        plantedAt: Date.now(),
+        duration: f.time * 1000,
+        ready: false
+      };
+      alert(`Đã mua hạt giống và gieo vào Ô Đất ${emptyIdx + 1}!`);
+    } else {
+      // Nếu hết đất, cộng trực tiếp 1 nông sản vào kho
+      userData.inventory[id] = (userData.inventory[id] || 0) + 1;
+      alert(`Vườn đã kín chỗ! Hạt giống đã biến thành thành phẩm cất sẵn vào Kho.`);
+    }
+
+    saveProfile();
+    renderList();
+    renderGardenPlots();
+  }
+
+  // Bán quả chốt lời
+  function sellFruit(id) {
+    const count = userData.inventory[id] || 0;
+    if (count <= 0) return;
+    const f = market[id];
+    userData.money += count * f.price;
+    userData.inventory[id] = 0;
+
+    // Áp lực xả hàng làm giá quả giảm nhẹ
+    f.price = Math.max(2, f.price - Math.min(count, 3));
+    f.seedPrice = Math.max(1, Math.round(f.price * 0.35));
+
+    saveProfile();
+    renderList();
+    drawCandles();
+  }
+
+  // ================== LOGIC VƯỜN TRỒNG THU HOẠCH RIÊNG ==================
+  function renderGardenPlots() {
+    const grid = document.getElementById('garden-plots');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    userData.plots.forEach((p, idx) => {
+      if (!p) {
+        grid.innerHTML += `
+          <div class="plot-card">
+            <span style="font-size:1.6rem;">🟫</span>
+            <div class="plot-empty">Mảnh Đất ${idx + 1}: Trống</div>
+            <button class="plot-plant-btn" onclick="openPlantModal(${idx})">🌱 Gieo Trồng</button>
+          </div>
+        `;
+      } else {
+        const f = market[p.id];
+        grid.innerHTML += `
+          <div class="plot-card">
+            <span style="font-size:1.8rem;">${p.ready ? f.icon : '🌱'}</span>
+            <div style="font-size:0.85rem; font-weight:bold; margin-top:2px;">${f.name}</div>
+            <div class="prog-bar"><div class="prog-fill" id="plot-fill-${idx}"></div></div>
+            <div id="plot-action-${idx}" style="margin-top:6px;">
+              ${p.ready ? 
+                `<button class="btn plot-harvest-btn" onclick="harvestPlot(${idx})">🌾 Thu Hoạch Ngay</button>` : 
+                `<span style="font-size:0.75rem; color:var(--sub);">Đang lớn dần...</span>`}
+            </div>
+          </div>
+        `;
+      }
+    });
+  }
+
+  function openPlantModal(plotIdx) {
+    let opt = prompt("Nhập tên loại muốn gieo:\n(dau tay, tao, chuoi, nho, dua hau, bo, chanh, cam, le, kiwi, cherry, dua, xoai, ca rot, bap, bong cai)", "dau tay");
+    if (!opt) return;
+
+    // Tìm id
+    let keyMap = {
+      'dau tay': 'strawberry', 'tao': 'apple', 'chuoi': 'banana', 'nho': 'grapes',
+      'dua hau': 'watermelon', 'bo': 'avocado', 'chanh': 'lemon', 'cam': 'orange',
+      'le': 'pear', 'kiwi': 'kiwi', 'cherry': 'cherry', 'dua': 'pineapple',
+      'xoai': 'mango', 'ca rot': 'carrot', 'bap': 'corn', 'bong cai': 'broccoli'
+    };
+    let fid = keyMap[opt.toLowerCase().trim()] || 'strawberry';
+    let f = market[fid];
+
+    if (userData.money < f.seedPrice) return alert("Không đủ tiền mua hạt giống này!");
+    userData.money -= f.seedPrice;
+
+    userData.plots[plotIdx] = {
+      id: fid,
+      plantedAt: Date.now(),
+      duration: f.time * 1000,
+      ready: false
+    };
+
+    saveProfile();
+    renderList();
+    renderGardenPlots();
+  }
+
+  function harvestPlot(idx) {
+    const p = userData.plots[idx];
+    if (!p || !p.ready) return;
+    const f = market[p.id];
+    userData.inventory[p.id] = (userData.inventory[p.id] || 0) + 1;
+    userData.plots[idx] = null;
+    alert(`🎉 Thu hoạch thành công 1 ${f.name}! Đã cất vào kho.`);
+    saveProfile();
+    renderList();
+    renderGardenPlots();
+  }
+
+  function startGardenPlotLoop() {
+    setInterval(() => {
+      let changed = false;
+      const now = Date.now();
+      userData.plots.forEach((p, idx) => {
+        if (p && !p.ready) {
+          let passed = now - p.plantedAt;
+          let pct = Math.min(100, (passed / p.duration) * 100);
+          const bar = document.getElementById(`plot-fill-${idx}`);
+          if (bar) bar.style.width = pct + '%';
+
+          if (passed >= p.duration) {
+            p.ready = true;
+            changed = true;
+          }
+        }
+      });
+      if (changed) {
+        saveProfile();
+        renderGardenPlots();
+      }
+    }, 200);
+  }
+
+  // ================== VẼ BIỂU ĐỒ NẾN ==================
+  function drawCandles() {
+    const canvas = document.getElementById('candleCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const list = candles[currentFruit] || [];
+    if (list.length === 0) return;
+
+    let max = -Infinity, min = Infinity;
+    list.forEach(c => {
+      if (c.high > max) max = c.high;
+      if (c.low < min) min = c.low;
+    });
+    max += 2; min = Math.max(1, min - 2);
+
+    const scaleY = (v) => h - ((v - min) / (max - min)) * (h - 30) - 15;
+    const candleWidth = (w / list.length) - 6;
+
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      let y = (h / 4) * i;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    list.forEach((c, idx) => {
+      const x = idx * (candleWidth + 6) + 6;
+      const openY = scaleY(c.open);
+      const closeY = scaleY(c.close);
+      const highY = scaleY(c.high);
+      const lowY = scaleY(c.low);
+      const isGreen = c.close >= c.open;
+
+      ctx.strokeStyle = isGreen ? '#22c55e' : '#ef4444';
+      ctx.fillStyle = isGreen ? '#22c55e' : '#ef4444';
+
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x + candleWidth / 2, highY);
+      ctx.lineTo(x + candleWidth / 2, lowY);
+      ctx.stroke();
+
+      const top = Math.min(openY, closeY);
+      const height = Math.max(3, Math.abs(closeY - openY));
+      ctx.fillRect(x, top, candleWidth, height);
+    });
+  }
+
+  function startStockLoop() {
+    setInterval(() => {
+      for (let k in market) {
+        let f = market[k];
+        let delta = (Math.random() * 4 - 2);
+        let nextPrice = Math.max(2, Math.round(f.price + delta));
+        f.price = nextPrice;
+        f.seedPrice = Math.max(1, Math.round(f.price * 0.35));
+
+        let arr = candles[k];
+        let last = arr[arr.length - 1];
+        let open = last ? last.close : f.price;
+        let close = f.price;
+        arr.push({
+          open: open, close: close,
+          high: Math.max(open, close) + Math.floor(Math.random() * 2),
+          low: Math.max(1, Math.min(open, close) - Math.floor(Math.random() * 2))
+        });
+        if (arr.length > 15) arr.shift();
+      }
+      renderList();
+      drawCandles();
+    }, 2000);
+  }
+</script>
+</body>
+</html>
